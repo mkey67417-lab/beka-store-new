@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabase';
+import type { OrderStatus, StoreOrder } from '@/types';
+
+export type { StoreOrder };
 
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
@@ -23,20 +26,6 @@ export interface SubmitOrderResult {
   receiptSaved: boolean;
 }
 
-export interface StoreOrder {
-  id: string;
-  customerName: string | null;
-  whatsapp: string;
-  gameName: string;
-  packageLabel: string;
-  playerId: string;
-  amount: number;
-  paymentName: string;
-  payerAccount: string | null;
-  status: string;
-  createdAt: string;
-}
-
 interface OrderRow {
   id: string;
   customer_name: string | null;
@@ -44,11 +33,15 @@ interface OrderRow {
   player_id: string;
   amount_sdg: number;
   payer_account: string | null;
+  receipt_path: string | null;
   status: string;
   created_at: string;
-  game: { name_ar: string } | null;
+  reviewed_at: string | null;
+  user_id: string | null;
+  game: { name_ar: string; name_en: string } | null;
   package: { label_ar: string } | null;
   payment_method: { name_ar: string } | null;
+  user: { name: string | null; phone: string | null; email: string | null } | null;
 }
 
 export function normalizePlayerId(value: string): string {
@@ -123,7 +116,7 @@ export async function fetchOrders(): Promise<StoreOrder[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      'id, customer_name, whatsapp, player_id, amount_sdg, payer_account, status, created_at, game:games(name_ar), package:packages(label_ar), payment_method:payment_methods(name_ar)'
+      'id, customer_name, whatsapp, player_id, amount_sdg, payer_account, receipt_path, status, created_at, reviewed_at, user_id, game:games(name_ar, name_en), package:packages(label_ar), payment_method:payment_methods(name_ar), user:profiles(name, phone, email)'
     )
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
@@ -134,12 +127,27 @@ export async function fetchOrders(): Promise<StoreOrder[]> {
     customerName: row.customer_name,
     whatsapp: row.whatsapp,
     gameName: row.game?.name_ar ?? '—',
+    gameEn: row.game?.name_en ?? '—',
     packageLabel: row.package?.label_ar ?? '—',
     playerId: row.player_id,
     amount: row.amount_sdg,
     paymentName: row.payment_method?.name_ar ?? '—',
     payerAccount: row.payer_account,
-    status: row.status,
+    receiptPath: row.receipt_path,
+    status: row.status as OrderStatus,
     createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+    userId: row.user_id,
+    userName: row.user?.name ?? null,
+    userPhone: row.user?.phone ?? null,
+    userEmail: row.user?.email ?? null,
   }));
+}
+
+export async function reviewOrder(orderId: string, approve: boolean): Promise<void> {
+  const { error } = await supabase.rpc('review_order', {
+    p_order_id: orderId,
+    p_approve: approve,
+  });
+  if (error) throw new Error(error.message);
 }

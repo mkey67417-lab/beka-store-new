@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { uploadReceipt } from '@/lib/orders';
-import type { TopUpMethodId, TopUpRequest, TopUpStatus } from '@/types';
+import type { TopUpMethodId, TopUpRequest, TopUpStatus, TopUpWithUser } from '@/types';
 
 export interface NewTopUp {
   amount: number;
@@ -20,8 +20,15 @@ interface TopUpRow {
   created_at: string;
 }
 
+interface TopUpWithUserRow extends TopUpRow {
+  user: { name: string | null; phone: string | null; email: string | null } | null;
+}
+
 const TOP_UP_COLUMNS =
   'id, user_id, amount_sdg, method, transaction_number, receipt_path, status, created_at';
+
+const TOP_UP_WITH_USER_COLUMNS =
+  'id, user_id, amount_sdg, method, transaction_number, receipt_path, status, created_at, user:profiles(name, phone, email)';
 
 function toTopUp(row: TopUpRow): TopUpRequest {
   return {
@@ -33,6 +40,15 @@ function toTopUp(row: TopUpRow): TopUpRequest {
     receiptPath: row.receipt_path,
     status: row.status,
     createdAt: row.created_at,
+  };
+}
+
+function toTopUpWithUser(row: TopUpWithUserRow): TopUpWithUser {
+  return {
+    ...toTopUp(row),
+    userName: row.user?.name ?? null,
+    userPhone: row.user?.phone ?? null,
+    userEmail: row.user?.email ?? null,
   };
 }
 
@@ -58,6 +74,16 @@ export async function fetchTopUps(): Promise<TopUpRequest[]> {
   if (error) throw new Error(error.message);
   if (!Array.isArray(data)) throw new Error('Unexpected response');
   return (data as unknown as TopUpRow[]).map(toTopUp);
+}
+
+export async function fetchTopUpsWithUsers(): Promise<TopUpWithUser[]> {
+  const { data, error } = await supabase
+    .from('topups')
+    .select(TOP_UP_WITH_USER_COLUMNS)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  if (!Array.isArray(data)) throw new Error('Unexpected response');
+  return (data as unknown as TopUpWithUserRow[]).map(toTopUpWithUser);
 }
 
 export async function reviewTopUp(id: string, approve: boolean): Promise<void> {

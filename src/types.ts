@@ -52,6 +52,35 @@ export interface TopUpRequest {
   createdAt: string;
 }
 
+export interface TopUpWithUser extends TopUpRequest {
+  userName: string | null;
+  userPhone: string | null;
+  userEmail: string | null;
+}
+
+export type OrderStatus = 'pending' | 'completed' | 'rejected';
+
+export interface StoreOrder {
+  id: string;
+  customerName: string | null;
+  whatsapp: string;
+  gameName: string;
+  gameEn: string;
+  packageLabel: string;
+  playerId: string;
+  amount: number;
+  paymentName: string;
+  payerAccount: string | null;
+  receiptPath: string | null;
+  status: OrderStatus;
+  createdAt: string;
+  reviewedAt: string | null;
+  userId: string | null;
+  userName: string | null;
+  userPhone: string | null;
+  userEmail: string | null;
+}
+
 export interface Catalog {
   games: Game[];
   packages: Package[];

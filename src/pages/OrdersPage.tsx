@@ -10,7 +10,7 @@ import { formatDateTime } from '@/lib/wallet';
 const ORDER_STATUS: Record<string, { label: string; style: string }> = {
   pending: { label: 'قيد المراجعة', style: 'bg-amber-500/15 text-amber-300 ring-amber-500/30' },
   completed: { label: 'تم التنفيذ', style: 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30' },
-  cancelled: { label: 'ملغي', style: 'bg-red-500/15 text-red-300 ring-red-500/30' },
+  rejected: { label: 'مرفوض', style: 'bg-red-500/15 text-red-300 ring-red-500/30' },
 };
 
 export default function OrdersPage() {
