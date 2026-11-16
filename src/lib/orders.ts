@@ -112,42 +112,56 @@ export async function submitOrder(input: OrderInput): Promise<SubmitOrderResult>
   return { receiptSaved: receiptPath !== null };
 }
 
+export async function fetchReceiptUrl(orderId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('receipt_path')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !data?.receipt_path) return null;
+
+    const { data: publicUrlData } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(data.receipt_path);
+
+    return publicUrlData.publicUrl;
+  } catch (err) {
+    console.error('Error fetching receipt URL:', err);
+    return null;
+  }
+}
+
 export async function fetchOrders(): Promise<StoreOrder[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select(
-      'id, customer_name, whatsapp, player_id, amount_sdg, payer_account, receipt_path, status, created_at, reviewed_at, user_id, game:games(name_ar, name_en), package:packages(label_ar), payment_method:payment_methods(name_ar), user:profiles(name, phone, email)'
-    )
+    .select(`
+      *,
+      game:games(name_ar, name_en),
+      package:game_packages(label_ar),
+      payment_method:payment_methods(name_ar),
+      user:users(name, phone, email)
+    `)
     .order('created_at', { ascending: false });
-  if (error) throw new Error(error.message);
-  if (!Array.isArray(data)) throw new Error('Unexpected response');
 
-  return (data as unknown as OrderRow[]).map((row) => ({
+  if (error) throw new Error(error.message);
+  
+  return (data || []).map((row: OrderRow) => ({
     id: row.id,
-    customerName: row.customer_name,
+    customerName: row.customer_name || '',
     whatsapp: row.whatsapp,
-    gameName: row.game?.name_ar ?? '—',
-    gameEn: row.game?.name_en ?? '—',
-    packageLabel: row.package?.label_ar ?? '—',
     playerId: row.player_id,
-    amount: row.amount_sdg,
-    paymentName: row.payment_method?.name_ar ?? '—',
-    payerAccount: row.payer_account,
+    amountSdg: row.amount_sdg,
+    payerAccount: row.payer_account || '',
     receiptPath: row.receipt_path,
     status: row.status as OrderStatus,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
     userId: row.user_id,
-    userName: row.user?.name ?? null,
-    userPhone: row.user?.phone ?? null,
-    userEmail: row.user?.email ?? null,
+    game: row.game,
+    package: row.package,
+    paymentMethod: row.payment_method,
+    user: row.user,
   }));
-}
-
-export async function reviewOrder(orderId: string, approve: boolean): Promise<void> {
-  const { error } = await supabase.rpc('review_order', {
-    p_order_id: orderId,
-    p_approve: approve,
-  });
-  if (error) throw new Error(error.message);
 }
