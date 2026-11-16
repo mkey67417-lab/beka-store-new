@@ -133,6 +133,18 @@ export async function fetchReceiptUrl(orderId: string): Promise<string | null> {
   }
 }
 
+export async function reviewOrder(orderId: string, status: OrderStatus, _reviewedBy?: string): Promise<void> {
+  const { error } = await supabase
+    .from('orders')
+    .update({ 
+      status, 
+      reviewed_at: new Date().toISOString() 
+    })
+    .eq('id', orderId);
+
+  if (error) throw new Error(error.message);
+}
+
 export async function fetchOrders(): Promise<StoreOrder[]> {
   const { data, error } = await supabase
     .from('orders')
