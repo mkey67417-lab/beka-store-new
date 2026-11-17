@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  'https://wacijpqtwcmrnurrjvlx.supabase.co',
+  'Sb_publishable_4_CUQ7a_slWSwTwdiw25Ag_j9Vy4CIp',
   {
     auth: {
       flowType: 'pkce',
